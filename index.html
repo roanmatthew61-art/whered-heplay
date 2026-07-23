@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where'd He Play? — NFL Edition</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  body {
+    font-family: 'Oswald', 'Arial Narrow', Arial, sans-serif;
+    background: #0a1a33; color: #fff;
+    max-width: 480px; margin: 0 auto; padding: 32px 16px 60px;
+  }
+  h1 { text-align: center; margin: 0 0 4px; font-size: 1.9em; text-transform: uppercase; letter-spacing: 1px; }
+  #puzzleLabel { text-align: center; color: #c9a24b; font-weight: 700; letter-spacing: 2px; font-size: 0.9em; margin-bottom: 6px; }
+  .headerBar { width: 60px; height: 3px; background: #d8232a; margin: 0 auto 18px; border-radius: 2px; }
+  #navRow { text-align: center; margin-bottom: 16px; }
+  #game, #summary, #statsView {
+    background: #12294d; border: 1px solid #234876; border-radius: 10px;
+    padding: 24px 20px; box-shadow: 0 4px 14px rgba(0,0,0,0.35); box-sizing: border-box;
+  }
+  #logoWrap { height: 120px; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; }
+  #logo {
+    width: 110px; height: 110px; object-fit: contain; background: #fff;
+    border-radius: 50%; padding: 8px; box-sizing: border-box; border: 3px solid #c9a24b;
+  }
+  #playerName { text-align: center; font-size: 1.5em; font-weight: 700; margin: 0 0 10px; text-transform: uppercase; letter-spacing: 1px; }
+  #roundCounter { text-align: center; color: #a9b7cc; letter-spacing: 1px; text-transform: uppercase; font-size: 0.85em; margin-bottom: 14px; }
+  #strikes { text-align: center; margin-bottom: 16px; }
+  .strike-box {
+    width: 16px; height: 16px; display: inline-block; border-radius: 3px; margin: 0 4px;
+    background: #1c3f6e; border: 1px solid #234876; vertical-align: middle;
+  }
+  .strike-box.used { background: #d8232a; border-color: #d8232a; }
+  #hints { min-height: 50px; text-align: center; margin-bottom: 16px; color: #dbe4f0; font-size: 0.95em; }
+  .hint { margin: 4px 0; }
+  #guessForm { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; }
+  #autocompleteWrap { position: relative; flex: 1; max-width: 230px; }
+  #collegeInput {
+    width: 100%; box-sizing: border-box; padding: 12px; font-size: 1em; min-height: 44px;
+    border: 1px solid #234876; border-radius: 6px; background: #0a1a33; color: #fff;
+  }
+  #collegeInput::placeholder { color: #7f8fa8; }
+  #collegeInput:focus { outline: none; border-color: #c9a24b; }
+  #suggestions {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 10;
+    background: #12294d; border: 1px solid #234876; border-radius: 6px; margin-top: 4px;
+    max-height: 180px; overflow-y: auto; text-align: left;
+  }
+  #suggestions div { padding: 8px 10px; cursor: pointer; color: #fff; }
+  #suggestions div:hover, #suggestions div.active { background: #234876; }
+  button {
+    padding: 12px 18px; font-size: 1em; cursor: pointer; border: none; border-radius: 6px;
+    min-height: 44px; background: #d8232a; color: #fff; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  button:hover { background: #b81c22; }
+  button:disabled { background: #5a6c85; cursor: default; }
+  .btn-secondary { background: transparent; border: 1px solid #c9a24b; color: #c9a24b; }
+  .btn-secondary:hover { background: rgba(201,162,75,0.15); }
+  #feedback { text-align: center; font-weight: 700; min-height: 24px; margin-bottom: 6px; }
+  #feedback.correct { color: #3ddc84; }
+  #feedback.wrong { color: #ff6b6b; }
+  #summary, #statsView { text-align: center; }
+  #summary h2, #statsView h2 { font-size: 1.6em; margin: 0 0 16px; text-transform: uppercase; letter-spacing: 1px; }
+  #streakLine { color: #c9a24b; font-weight: 700; margin: 0 0 12px; font-size: 1.1em; }
+  #summary table { margin: 16px auto; border-collapse: collapse; width: 100%; }
+  #summary td, #summary th { padding: 8px 10px; border-bottom: 1px solid #234876; font-size: 0.9em; }
+  #summary th { color: #a9b7cc; text-transform: uppercase; font-size: 0.75em; letter-spacing: 1px; }
+  #shareSection { margin: 20px auto 0; max-width: 280px; }
+  #shareText {
+    width: 100%; box-sizing: border-box; font-family: monospace; font-size: 1em;
+    text-align: center; line-height: 1.4; resize: none; padding: 10px;
+    background: #0a1a33; color: #fff; border: 1px solid #234876; border-radius: 6px;
+  }
+  #copyStatus { font-size: 0.85em; color: #a9b7cc; min-height: 18px; margin-top: 6px; }
+  #shareActions { display: flex; gap: 8px; justify-content: center; margin-top: 10px; }
+  #restartBtn { display: block; margin: 18px auto 0; }
+  .statsGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 16px 0; }
+  .statCard { background: #0a1a33; border: 1px solid #234876; border-radius: 8px; padding: 14px; }
+  .statCard .num { font-size: 1.8em; font-weight: 700; }
+  .statCard .label { font-size: 0.7em; color: #a9b7cc; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+  .chartWrap { margin: 20px 0 4px; }
+  .chartBars { display: flex; align-items: flex-end; gap: 6px; height: 100px; padding: 0 4px; }
+  .chartBar { flex: 1; background: #d8232a; border-radius: 3px 3px 0 0; min-height: 2px; }
+  .chartBar.perfect { background: #3ddc84; }
+  .chartLabels { display: flex; gap: 6px; padding: 0 4px; margin-top: 4px; }
+  .chartLabels span { flex: 1; text-align: center; font-size: 0.6em; color: #7f8fa8; }
+  .emptyStats { color: #a9b7cc; padding: 20px 0; }
+  #statsBackBtn { display: block; margin: 20px auto 0; }
+  #loadingView { text-align: center; color: #a9b7cc; padding: 40px 20px; letter-spacing: 1px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<h1>Where'd He Play?</h1>
+<div id="puzzleLabel"></div>
+<div class="headerBar"></div>
+<div id="navRow"><button id="statsNavBtn" type="button" class="btn-secondary">View stats</button></div>
+
+<div id="loadingView">Loading today's puzzle…</div>
+
+<div id="game" class="hidden">
+  <div id="roundCounter"></div>
+  <div id="logoWrap">
+    <img id="logo" src="" alt="Team logo">
+  </div>
+  <div id="playerName"></div>
+  <div id="strikes"></div>
+  <div id="hints"></div>
+  <form id="guessForm">
+    <div id="autocompleteWrap">
+      <input type="text" id="collegeInput" autocomplete="off" placeholder="Start typing a college...">
+      <div id="suggestions" class="hidden"></div>
+    </div>
+    <button id="guessBtn" type="submit">Guess</button>
+  </form>
+  <div id="feedback"></div>
+</div>
+
+<div id="summary" class="hidden"></div>
+
+<div id="statsView" class="hidden"></div>
+
+<script>
+// ---- NFL team name -> ESPN logo abbreviation (all 32 teams) ----
+const teamAbbr = {
+  "Cardinals": "ari", "Falcons": "atl", "Ravens": "bal", "Bills": "buf",
+  "Panthers": "car", "Bears": "chi", "Bengals": "cin", "Browns": "cle",
+  "Cowboys": "dal", "Broncos": "den", "Lions": "det", "Packers": "gb",
+  "Texans": "hou", "Colts": "ind", "Jaguars": "jax", "Chiefs": "kc",
+  "Raiders": "lv", "Chargers": "lac", "Rams": "lar", "Dolphins": "mia",
+  "Vikings": "min", "Patriots": "ne", "Saints": "no", "Giants": "nyg",
+  "Jets": "nyj", "Eagles": "phi", "Steelers": "pit", "49ers": "sf",
+  "Seahawks": "sea", "Buccaneers": "tb", "Titans": "ten", "Commanders": "wsh"
+};
+
+const NFL_SHIELD_URL = "https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png";
+
+// team_status is either a full team name ("Kansas City Chiefs"),
+// "Retired", or "Free Agent" — the latter two have no team, so show the NFL shield instead.
+function logoUrlFor(teamStatus) {
+  if (teamStatus === "Retired" || teamStatus === "Free Agent") return NFL_SHIELD_URL;
+  const mascot = teamStatus.trim().split(" ").pop();
+  const abbr = teamAbbr[mascot];
+  return abbr ? `https://a.espncdn.com/i/teamlogos/nfl/500/${abbr}.png` : NFL_SHIELD_URL;
+}
+
+// ---- Full player pool, from wheredhe-play-expanded-players.csv ----
+const CSV_TEXT = `player_name,position,team_status,college,conference,coach,difficulty
+Patrick Mahomes,QB,Kansas City Chiefs,Texas Tech,Big 12,Kliff Kingsbury,easy
+Tom Brady,QB,Retired,Michigan,Big Ten,Lloyd Carr,easy
+Aaron Rodgers,QB,Pittsburgh Steelers,California,Pac-12,Jeff Tedford,easy
+Peyton Manning,QB,Retired,Tennessee,SEC,Phillip Fulmer,easy
+Joe Burrow,QB,Cincinnati Bengals,LSU,SEC,Ed Orgeron,easy
+Lamar Jackson,QB,Baltimore Ravens,Louisville,ACC,Bobby Petrino,easy
+Josh Allen,QB,Buffalo Bills,Wyoming,Mountain West,Craig Bohl,medium
+Trevor Lawrence,QB,Jacksonville Jaguars,Clemson,ACC,Dabo Swinney,easy
+Justin Herbert,QB,Los Angeles Chargers,Oregon,Pac-12,Mario Cristobal,medium
+Jalen Hurts,QB,Philadelphia Eagles,Oklahoma,Big 12,Lincoln Riley,medium
+Dak Prescott,QB,Dallas Cowboys,Mississippi State,SEC,Dan Mullen,medium
+Kyler Murray,QB,Arizona Cardinals,Oklahoma,Big 12,Lincoln Riley,medium
+C.J. Stroud,QB,Houston Texans,Ohio State,Big Ten,Ryan Day,medium
+Brock Purdy,QB,San Francisco 49ers,Iowa State,Big 12,Matt Campbell,hard
+Baker Mayfield,QB,Tampa Bay Buccaneers,Oklahoma,Big 12,Bob Stoops,medium
+Drew Brees,QB,Retired,Purdue,Big Ten,Joe Tiller,medium
+Russell Wilson,QB,New York Giants,Wisconsin,Big Ten,Bret Bielema,medium
+Cam Newton,QB,Retired,Auburn,SEC,Gene Chizik,medium
+Matt Ryan,QB,Retired,Boston College,ACC,Jeff Jagodzinski,medium
+Philip Rivers,QB,Retired,NC State,ACC,Chuck Amato,medium
+Eli Manning,QB,Retired,Ole Miss,SEC,David Cutcliffe,medium
+Ben Roethlisberger,QB,Retired,Miami (OH),MAC,Terry Hoeppner,hard
+Derrick Henry,RB,Baltimore Ravens,Alabama,SEC,Nick Saban,easy
+Christian McCaffrey,RB,San Francisco 49ers,Stanford,Pac-12,David Shaw,easy
+Saquon Barkley,RB,Philadelphia Eagles,Penn State,Big Ten,James Franklin,easy
+Bijan Robinson,RB,Atlanta Falcons,Texas,Big 12,Steve Sarkisian,medium
+Jonathan Taylor,RB,Indianapolis Colts,Wisconsin,Big Ten,Paul Chryst,medium
+Josh Jacobs,RB,Green Bay Packers,Alabama,SEC,Nick Saban,medium
+Nick Chubb,RB,Houston Texans,Georgia,SEC,Mark Richt,medium
+Alvin Kamara,RB,New Orleans Saints,Tennessee,SEC,Butch Jones,medium
+Ezekiel Elliott,RB,Free Agent,Ohio State,Big Ten,Urban Meyer,medium
+Le'Veon Bell,RB,Retired,Michigan State,Big Ten,Mark Dantonio,medium
+Adrian Peterson,RB,Retired,Oklahoma,Big 12,Bob Stoops,easy
+Marshawn Lynch,RB,Retired,California,Pac-12,Jeff Tedford,medium
+LeSean McCoy,RB,Retired,Pittsburgh,Big East,Dave Wannstedt,medium
+Todd Gurley,RB,Retired,Georgia,SEC,Mark Richt,medium
+Jahmyr Gibbs,RB,Detroit Lions,Alabama,SEC,Nick Saban,hard
+Justin Jefferson,WR,Minnesota Vikings,LSU,SEC,Ed Orgeron,medium
+Ja'Marr Chase,WR,Cincinnati Bengals,LSU,SEC,Ed Orgeron,medium
+CeeDee Lamb,WR,Dallas Cowboys,Oklahoma,Big 12,Lincoln Riley,medium
+Tyreek Hill,WR,Miami Dolphins,West Alabama,Gulf South,Brett Gilliland,hard
+Davante Adams,WR,Los Angeles Rams,Fresno State,Mountain West,Tim DeRuyter,medium
+Stefon Diggs,WR,New England Patriots,Maryland,ACC,Randy Edsall,medium
+DeAndre Hopkins,WR,Baltimore Ravens,Clemson,ACC,Dabo Swinney,medium
+A.J. Brown,WR,Philadelphia Eagles,Ole Miss,SEC,Hugh Freeze,medium
+Amon-Ra St. Brown,WR,Detroit Lions,USC,Pac-12,Clay Helton,medium
+Puka Nacua,WR,Los Angeles Rams,BYU,Independent,Kalani Sitake,hard
+Cooper Kupp,WR,Seattle Seahawks,Eastern Washington,Big Sky,Beau Baldwin,hard
+Mike Evans,WR,Tampa Bay Buccaneers,Texas A&M,SEC,Kevin Sumlin,medium
+DK Metcalf,WR,Pittsburgh Steelers,Ole Miss,SEC,Hugh Freeze,medium
+Terry McLaurin,WR,Washington Commanders,Ohio State,Big Ten,Urban Meyer,medium
+Michael Thomas,WR,Los Angeles Rams,Ohio State,Big Ten,Urban Meyer,medium
+Julio Jones,WR,Retired,Alabama,SEC,Nick Saban,medium
+Odell Beckham Jr.,WR,Miami Dolphins,LSU,SEC,Les Miles,medium
+DeVonta Smith,WR,Philadelphia Eagles,Alabama,SEC,Nick Saban,medium
+Garrett Wilson,WR,New York Jets,Ohio State,Big Ten,Ryan Day,hard
+Chris Olave,WR,New Orleans Saints,Ohio State,Big Ten,Ryan Day,hard
+Randy Moss,WR,Retired,Marshall,Conference USA,Bob Pruett,medium
+Terrell Owens,WR,Retired,Tennessee-Chattanooga,Southern Conference,Buddy Nix,hard
+Antonio Brown,WR,Retired,Central Michigan,MAC,Butch Jones,hard
+Larry Fitzgerald,WR,Retired,Pittsburgh,Big East,Walt Harris,medium
+Calvin Johnson,WR,Retired,Georgia Tech,ACC,Chan Gailey,medium
+Jerry Rice,WR,Retired,Mississippi Valley State,SWAC,Archie Cooley,hard
+Travis Kelce,TE,Kansas City Chiefs,Cincinnati,AAC,Butch Jones,hard
+George Kittle,TE,San Francisco 49ers,Iowa,Big Ten,Kirk Ferentz,medium
+Mark Andrews,TE,Baltimore Ravens,Oklahoma,Big 12,Bob Stoops,medium
+T.J. Hockenson,TE,Minnesota Vikings,Iowa,Big Ten,Kirk Ferentz,hard
+Sam LaPorta,TE,Detroit Lions,Iowa,Big Ten,Kirk Ferentz,hard
+Dallas Goedert,TE,Philadelphia Eagles,South Dakota State,Missouri Valley,John Stiegelmeier,hard
+Kyle Pitts,TE,Atlanta Falcons,Florida,SEC,Dan Mullen,hard
+Evan Engram,TE,Denver Broncos,Ole Miss,SEC,Hugh Freeze,hard
+Darren Waller,TE,Retired,Georgia Tech,ACC,Paul Johnson,hard
+Rob Gronkowski,TE,Retired,Arizona,Pac-10,Mike Stoops,medium
+Trent Williams,OL,San Francisco 49ers,Oklahoma,Big 12,Bob Stoops,medium
+Zack Martin,OL,Dallas Cowboys,Notre Dame,Independent,Brian Kelly,medium
+Quenton Nelson,OL,Indianapolis Colts,Notre Dame,Independent,Brian Kelly,medium
+Tristan Wirfs,OL,Tampa Bay Buccaneers,Iowa,Big Ten,Kirk Ferentz,hard
+Lane Johnson,OL,Philadelphia Eagles,Oklahoma,Big 12,Bob Stoops,hard
+Jason Kelce,OL,Retired,Cincinnati,Big East,Butch Jones,hard
+Creed Humphrey,OL,Kansas City Chiefs,Oklahoma,Big 12,Lincoln Riley,hard
+Penei Sewell,OL,Detroit Lions,Oregon,Pac-12,Mario Cristobal,hard
+Laremy Tunsil,OL,Washington Commanders,Ole Miss,SEC,Hugh Freeze,hard
+Joe Thuney,OL,Chicago Bears,NC State,ACC,Dave Doeren,hard
+Tyron Smith,OL,New York Jets,USC,Pac-10,Pete Carroll,hard
+Andrew Whitworth,OL,Retired,LSU,SEC,Nick Saban,hard
+Orlando Brown Jr.,OL,Arizona Cardinals,Oklahoma,Big 12,Lincoln Riley,hard
+Christian Darrisaw,OL,Minnesota Vikings,Virginia Tech,ACC,Justin Fuente,hard
+Rashawn Slater,OL,Los Angeles Chargers,Northwestern,Big Ten,Pat Fitzgerald,hard
+Myles Garrett,DL,Cleveland Browns,Texas A&M,SEC,Kevin Sumlin,medium
+Nick Bosa,DL,San Francisco 49ers,Ohio State,Big Ten,Urban Meyer,medium
+Aaron Donald,DL,Retired,Pittsburgh,ACC,Paul Chryst,medium
+Chris Jones,DL,Kansas City Chiefs,Mississippi State,SEC,Dan Mullen,hard
+Maxx Crosby,DL,Las Vegas Raiders,Eastern Michigan,MAC,Chris Creighton,hard
+Cameron Heyward,DL,Pittsburgh Steelers,Ohio State,Big Ten,Jim Tressel,hard
+DeForest Buckner,DL,Indianapolis Colts,Oregon,Pac-12,Mark Helfrich,hard
+Khalil Mack,DL,Los Angeles Chargers,Buffalo,MAC,Jeff Quinn,hard
+Von Miller,DL,Buffalo Bills,Texas A&M,SEC,Mike Sherman,medium
+Danielle Hunter,DL,Houston Texans,LSU,SEC,Les Miles,hard
+Jonathan Allen,DL,Minnesota Vikings,Alabama,SEC,Nick Saban,hard
+Dexter Lawrence,DL,New York Giants,Clemson,ACC,Dabo Swinney,hard
+Reggie White,DL,Retired,Tennessee,SEC,Johnny Majors,medium
+T.J. Watt,DL,Pittsburgh Steelers,Wisconsin,Big Ten,Paul Chryst,medium
+Micah Parsons,LB,Green Bay Packers,Penn State,Big Ten,James Franklin,medium
+Fred Warner,LB,San Francisco 49ers,BYU,Independent,Kalani Sitake,hard
+Roquan Smith,LB,Baltimore Ravens,Georgia,SEC,Kirby Smart,hard
+Bobby Wagner,LB,Washington Commanders,Utah State,Mountain West,Gary Andersen,hard
+Luke Kuechly,LB,Retired,Boston College,ACC,Frank Spaziani,hard
+Patrick Queen,LB,Pittsburgh Steelers,LSU,SEC,Ed Orgeron,hard
+Devin White,LB,Free Agent,LSU,SEC,Ed Orgeron,hard
+Foyesade Oluokun,LB,Jacksonville Jaguars,Yale,Ivy League,Tony Reno,hard
+Zaire Franklin,LB,Indianapolis Colts,Syracuse,ACC,Scott Shafer,hard
+Demario Davis,LB,New Orleans Saints,Arkansas State,Sun Belt,Steve Roberts,hard
+Lawrence Taylor,LB,Retired,North Carolina,ACC,Dick Crum,hard
+Ray Lewis,LB,Retired,Miami (FL),Big East,Butch Davis,medium
+Sauce Gardner,CB,New York Jets,Cincinnati,AAC,Luke Fickell,hard
+Jalen Ramsey,CB,Pittsburgh Steelers,Florida State,ACC,Jimbo Fisher,medium
+Patrick Surtain II,CB,Denver Broncos,Alabama,SEC,Nick Saban,medium
+Marshon Lattimore,CB,Washington Commanders,Ohio State,Big Ten,Urban Meyer,hard
+Xavien Howard,CB,Philadelphia Eagles,Baylor,Big 12,Art Briles,hard
+Jaire Alexander,CB,Baltimore Ravens,Louisville,ACC,Bobby Petrino,hard
+Denzel Ward,CB,Cleveland Browns,Ohio State,Big Ten,Urban Meyer,hard
+Derek Stingley Jr.,CB,Houston Texans,LSU,SEC,Ed Orgeron,hard
+Trevon Diggs,CB,Dallas Cowboys,Alabama,SEC,Nick Saban,hard
+Marlon Humphrey,CB,Baltimore Ravens,Alabama,SEC,Nick Saban,hard
+A.J. Terrell,CB,Atlanta Falcons,Clemson,ACC,Dabo Swinney,hard
+Darius Slay,CB,Philadelphia Eagles,Mississippi State,SEC,Dan Mullen,hard
+Richard Sherman,CB,Retired,Stanford,Pac-10,Jim Harbaugh,medium
+Champ Bailey,CB,Retired,Georgia,SEC,Jim Donnan,hard
+Deion Sanders,CB,Retired,Florida State,ACC,Bobby Bowden,medium
+Minkah Fitzpatrick,S,Pittsburgh Steelers,Alabama,SEC,Nick Saban,medium
+Derwin James,S,Los Angeles Chargers,Florida State,ACC,Jimbo Fisher,hard
+Kyle Hamilton,S,Baltimore Ravens,Notre Dame,Independent,Brian Kelly,hard
+Antoine Winfield Jr.,S,Tampa Bay Buccaneers,Minnesota,Big Ten,P.J. Fleck,hard
+Jessie Bates III,S,Atlanta Falcons,Wake Forest,ACC,Dave Clawson,hard
+Budda Baker,S,Cincinnati Bengals,Washington,Pac-12,Chris Petersen,hard
+Justin Simmons,S,Atlanta Falcons,Boston College,ACC,Steve Addazio,hard
+Talanoa Hufanga,S,San Francisco 49ers,USC,Pac-12,Clay Helton,hard
+Xavier McKinney,S,Green Bay Packers,Alabama,SEC,Nick Saban,hard
+Jordan Poyer,S,Free Agent,Oregon State,Pac-12,Mike Riley,hard
+Troy Polamalu,S,Retired,USC,Pac-10,Pete Carroll,medium
+Ed Reed,S,Retired,Miami (FL),Big East,Butch Davis,medium
+Justin Tucker,K,Baltimore Ravens,Texas,Big 12,Mack Brown,hard
+Harrison Butker,K,Kansas City Chiefs,Georgia Tech,ACC,Paul Johnson,hard
+Younghoe Koo,K,Atlanta Falcons,Georgia Southern,Sun Belt,Willie Fritz,hard
+Jake Elliott,K,Philadelphia Eagles,Memphis,AAC,Justin Fuente,hard
+Brandon Aubrey,K,Dallas Cowboys,Notre Dame,Independent,Brian Kelly,hard`;
+
+// Quote-aware CSV line splitter — handles fields containing commas or escaped
+// quotes, which Google Sheets produces automatically when a cell needs it.
+function parseCSVLine(line) {
+  const result = [];
+  let cur = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (inQuotes) {
+      if (char === '"') {
+        if (line[i + 1] === '"') { cur += '"'; i++; }
+        else { inQuotes = false; }
+      } else {
+        cur += char;
+      }
+    } else if (char === '"') {
+      inQuotes = true;
+    } else if (char === ",") {
+      result.push(cur);
+      cur = "";
+    } else {
+      cur += char;
+    }
+  }
+  result.push(cur);
+  return result;
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split("\n").map(l => l.replace(/\r$/, ""));
+  const header = parseCSVLine(lines[0]).map(h => h.trim());
+  return lines.slice(1)
+    .filter(line => line.trim().length > 0)
+    .map(line => {
+      const cols = parseCSVLine(line);
+      const row = {};
+      header.forEach((h, i) => row[h] = (cols[i] || "").trim());
+      return row;
+    });
+}
+
+function buildPlayers(csvText) {
+  return parseCSV(csvText)
+    .map(row => ({
+      name: row.player_name,
+      position: row.position,
+      teamStatus: row.team_status,
+      college: row.college,
+      conference: row.conference,
+      coach: row.coach,
+      difficulty: row.difficulty,
+      logo: logoUrlFor(row.team_status || "")
+    }))
+    .filter(p => p.name && p.college && p.teamStatus);
+}
+
+// Built-in copy of the roster, used whenever the live sheet can't be reached.
+const FALLBACK_PLAYERS = buildPlayers(CSV_TEXT);
+let rawPlayers = FALLBACK_PLAYERS;
+
+// The live spreadsheet is the real source of truth going forward; this is a
+// backup only, so it doesn't need to be updated when the sheet changes.
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQspT9RpEljG9WH3mecya8j3Bbznbf9ncj0vujfHcPdvWA8uozEMQKjnoVi_koO4mO1CiN1iZMPGZbK/pub?output=csv";
+
+// ---- College list for autocomplete — always derived from whichever player
+// pool is active, so any college a player is added with is automatically guessable. ----
+function collegesFromPlayers(list) {
+  return [...new Set(list.map(p => p.college).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+}
+
+let colleges = collegesFromPlayers(FALLBACK_PLAYERS);
+
+const ROUNDS_PER_GAME = 5;
+const MAX_SUGGESTIONS = 8;
+
+// ---- Daily rotation ----
+// Puzzle #1 is the day this feature shipped; every day after counts up from there,
+// same as Wordle's puzzle-number system. Local calendar date, not UTC, so a puzzle
+// changes at midnight wherever the player is.
+const EPOCH_DATE = new Date(2026, 6, 21);
+
+function getPuzzleNumber(date = new Date()) {
+  const start = new Date(EPOCH_DATE.getFullYear(), EPOCH_DATE.getMonth(), EPOCH_DATE.getDate());
+  const today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.round((today - start) / 86400000);
+  return diffDays + 1;
+}
+
+// Seeded PRNG (mulberry32) so the same puzzle number always produces the same
+// shuffle — that's what makes the daily puzzle identical for every player.
+function mulberry32(seed) {
+  return function () {
+    seed |= 0;
+    seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// ---- Difficulty mix ----
+// Most days run 2 easy / 2 medium / 1 hard; occasionally a day leans easier-skewed-medium
+// or splits toward the extremes instead. Weights pick which pattern a given day uses.
+const DIFFICULTY_PATTERNS = [
+  { easy: 2, medium: 2, hard: 1, weight: 0.6 },
+  { easy: 1, medium: 3, hard: 1, weight: 0.2 },
+  { easy: 2, medium: 1, hard: 2, weight: 0.2 },
+];
+
+function patternForDay(puzzleNum) {
+  const rng = mulberry32(puzzleNum * 999983 + 1); // distinct seed stream from player shuffling below
+  const r = rng();
+  let cumulative = 0;
+  for (const pattern of DIFFICULTY_PATTERNS) {
+    cumulative += pattern.weight;
+    if (r < cumulative) return pattern;
+  }
+  return DIFFICULTY_PATTERNS[DIFFICULTY_PATTERNS.length - 1];
+}
+
+function playersByDifficulty(pool) {
+  const groups = { easy: [], medium: [], hard: [] };
+  pool.forEach(p => {
+    const tier = (p.difficulty || "").trim().toLowerCase();
+    if (groups[tier]) groups[tier].push(p);
+  });
+  return groups;
+}
+
+function hashSeed(tierName) {
+  let h = 0;
+  for (let i = 0; i < tierName.length; i++) h = (h * 31 + tierName.charCodeAt(i)) | 0;
+  return h >>> 0;
+}
+
+// One fixed shuffle order per tier, repeating on a strict cycle — the player at
+// position k reappears at k+size, k+2*size, and so on, always exactly `size`
+// picks apart. A fixed order (rather than reshuffling each pass) is what
+// guarantees that gap precisely; independently-reshuffled passes can
+// coincidentally place a just-used player right after the boundary, which
+// defeats the point.
+function tierOrder(tierPool, tierName) {
+  const rng = mulberry32(hashSeed(tierName));
+  const arr = [...tierPool];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function playerAtPosition(tierPool, tierName, absolutePosition) {
+  const size = tierPool.length;
+  if (size === 0) return null;
+  return tierOrder(tierPool, tierName)[absolutePosition % size];
+}
+
+function drawFromTier(tierPool, tierName, startIndex, count, alreadyPicked) {
+  const picks = [];
+  let pos = startIndex;
+  let guard = 0;
+  while (picks.length < count && guard < count + tierPool.length + 5) {
+    const candidate = playerAtPosition(tierPool, tierName, pos);
+    if (candidate && !alreadyPicked.has(candidate.name)) {
+      picks.push(candidate);
+      alreadyPicked.add(candidate.name);
+    }
+    pos++;
+    guard++;
+  }
+  return picks;
+}
+
+// How many tier-T players every day before puzzleNum has already drawn — this is
+// what makes each day continue where the previous one left off in that tier's cycle.
+function cumulativeBefore(puzzleNum, tierName) {
+  let total = 0;
+  for (let d = 1; d < puzzleNum; d++) total += patternForDay(d)[tierName];
+  return total;
+}
+
+function dailyPool(puzzleNum) {
+  const groups = playersByDifficulty(rawPlayers);
+  const pattern = patternForDay(puzzleNum);
+  const alreadyPicked = new Set();
+  const picks = [];
+
+  ["easy", "medium", "hard"].forEach(tier => {
+    const tierPool = groups[tier];
+    const count = Math.min(pattern[tier], tierPool.length);
+    if (count === 0) return;
+    const startIndex = cumulativeBefore(puzzleNum, tier);
+    picks.push(...drawFromTier(tierPool, tier, startIndex, count, alreadyPicked));
+  });
+
+  // Safety net: if a tier came up short (e.g. the sheet temporarily has too few
+  // hard players), top up from the rest of the pool so today still has 5 players.
+  if (picks.length < ROUNDS_PER_GAME) {
+    const rng = mulberry32(puzzleNum * 7919 + 3);
+    const remaining = rawPlayers.filter(p => !alreadyPicked.has(p.name));
+    for (let i = remaining.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [remaining[i], remaining[j]] = [remaining[j], remaining[i]];
+    }
+    for (const p of remaining) {
+      if (picks.length >= ROUNDS_PER_GAME) break;
+      picks.push(p);
+      alreadyPicked.add(p.name);
+    }
+  }
+
+  // Shuffle the order the day's 5 players appear in, so rounds aren't always
+  // presented easy-to-hard.
+  const orderRng = mulberry32(puzzleNum * 40503 + 7);
+  for (let i = picks.length - 1; i > 0; i--) {
+    const j = Math.floor(orderRng() * (i + 1));
+    [picks[i], picks[j]] = [picks[j], picks[i]];
+  }
+
+  return picks;
+}
+
+// ---- Game state ----
+let puzzleNumber = getPuzzleNumber();
+let players = [];       // the 5 players chosen for today's puzzle
+let roundIndex = 0;
+let strikes = 0;
+let results = [];       // { correct: bool, strikesUsed: number }
+let activeSuggestions = [];
+let highlightedIndex = -1;
+
+const logoEl = document.getElementById("logo");
+const nameEl = document.getElementById("playerName");
+const roundCounterEl = document.getElementById("roundCounter");
+const strikesEl = document.getElementById("strikes");
+const hintsEl = document.getElementById("hints");
+const formEl = document.getElementById("guessForm");
+const inputEl = document.getElementById("collegeInput");
+const suggestionsEl = document.getElementById("suggestions");
+const guessBtn = document.getElementById("guessBtn");
+const feedbackEl = document.getElementById("feedback");
+const gameEl = document.getElementById("game");
+const summaryEl = document.getElementById("summary");
+const puzzleLabelEl = document.getElementById("puzzleLabel");
+const statsViewEl = document.getElementById("statsView");
+const statsNavBtn = document.getElementById("statsNavBtn");
+const loadingViewEl = document.getElementById("loadingView");
+
+// ---- Autocomplete ----
+function renderSuggestions(query) {
+  const q = query.trim().toLowerCase();
+  if (!q) {
+    hideSuggestions();
+    return;
+  }
+  const starts = colleges.filter(c => c.toLowerCase().startsWith(q));
+  const contains = colleges.filter(c => !c.toLowerCase().startsWith(q) && c.toLowerCase().includes(q));
+  activeSuggestions = [...starts, ...contains].slice(0, MAX_SUGGESTIONS);
+  highlightedIndex = -1;
+
+  if (activeSuggestions.length === 0) {
+    hideSuggestions();
+    return;
+  }
+
+  suggestionsEl.innerHTML = activeSuggestions
+    .map((c, i) => `<div data-index="${i}">${c}</div>`)
+    .join("");
+  suggestionsEl.classList.remove("hidden");
+}
+
+function hideSuggestions() {
+  suggestionsEl.classList.add("hidden");
+  suggestionsEl.innerHTML = "";
+  activeSuggestions = [];
+  highlightedIndex = -1;
+}
+
+function selectSuggestion(index) {
+  const choice = activeSuggestions[index];
+  if (!choice) return;
+  inputEl.value = choice;
+  hideSuggestions();
+  inputEl.focus();
+}
+
+function updateHighlight() {
+  [...suggestionsEl.children].forEach((el, i) => {
+    el.classList.toggle("active", i === highlightedIndex);
+  });
+}
+
+inputEl.addEventListener("input", () => renderSuggestions(inputEl.value));
+
+inputEl.addEventListener("keydown", (e) => {
+  if (suggestionsEl.classList.contains("hidden")) return;
+
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    highlightedIndex = Math.min(highlightedIndex + 1, activeSuggestions.length - 1);
+    updateHighlight();
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    highlightedIndex = Math.max(highlightedIndex - 1, 0);
+    updateHighlight();
+  } else if (e.key === "Enter" && highlightedIndex >= 0) {
+    e.preventDefault();
+    selectSuggestion(highlightedIndex);
+  } else if (e.key === "Escape") {
+    hideSuggestions();
+  }
+});
+
+suggestionsEl.addEventListener("mousedown", (e) => {
+  const target = e.target.closest("[data-index]");
+  if (!target) return;
+  e.preventDefault();
+  selectSuggestion(Number(target.dataset.index));
+});
+
+document.addEventListener("click", (e) => {
+  if (!e.target.closest("#autocompleteWrap")) hideSuggestions();
+});
+
+// ---- Game flow ----
+function startGame() {
+  puzzleNumber = getPuzzleNumber();
+  puzzleLabelEl.textContent = `#${puzzleNumber}`;
+  players = dailyPool(puzzleNumber);
+  roundIndex = 0;
+  results = [];
+  summaryEl.classList.add("hidden");
+  gameEl.classList.remove("hidden");
+  loadRound();
+}
+
+function loadRound() {
+  strikes = 0;
+  feedbackEl.textContent = "";
+  feedbackEl.className = "";
+  hintsEl.innerHTML = "";
+  inputEl.value = "";
+  inputEl.disabled = false;
+  guessBtn.disabled = false;
+  hideSuggestions();
+
+  const p = players[roundIndex];
+
+  logoEl.src = p.logo;
+  logoEl.alt = (p.teamStatus === "Retired" || p.teamStatus === "Free Agent")
+    ? "NFL shield"
+    : p.teamStatus + " logo";
+
+  nameEl.textContent = p.name;
+  roundCounterEl.textContent = `Player ${roundIndex + 1} of ${players.length}`;
+  updateStrikesDisplay();
+  inputEl.focus();
+}
+
+function updateStrikesDisplay() {
+  let html = "";
+  for (let i = 0; i < 3; i++) {
+    html += `<span class="strike-box${i < strikes ? " used" : ""}"></span>`;
+  }
+  strikesEl.innerHTML = html;
+}
+
+function handleGuess(e) {
+  e.preventDefault();
+
+  const typed = inputEl.value.trim();
+  const canonical = colleges.find(c => c.toLowerCase() === typed.toLowerCase());
+
+  if (!canonical) {
+    feedbackEl.textContent = "Please choose a valid college from the list.";
+    feedbackEl.className = "wrong";
+    return;
+  }
+
+  hideSuggestions();
+  const p = players[roundIndex];
+
+  if (canonical === p.college) {
+    feedbackEl.textContent = `Correct! ${p.name} played at ${p.college}.`;
+    feedbackEl.className = "correct";
+    inputEl.disabled = true;
+    guessBtn.disabled = true;
+    results.push({ correct: true, strikesUsed: strikes });
+    setTimeout(nextRound, 1400);
+    return;
+  }
+
+  // wrong guess
+  strikes++;
+  updateStrikesDisplay();
+  inputEl.value = "";
+
+  if (strikes === 1) {
+    feedbackEl.textContent = "Not quite. Strike 1.";
+    feedbackEl.className = "wrong";
+    const hint = document.createElement("div");
+    hint.className = "hint";
+    hint.textContent = `Hint: Conference — ${p.conference}`;
+    hintsEl.appendChild(hint);
+  } else if (strikes === 2) {
+    feedbackEl.textContent = "Still not it. Strike 2.";
+    feedbackEl.className = "wrong";
+    const hint = document.createElement("div");
+    hint.className = "hint";
+    hint.textContent = `Hint: Head coach — ${p.coach}`;
+    hintsEl.appendChild(hint);
+  } else if (strikes >= 3) {
+    feedbackEl.textContent = `Out of strikes. The answer was ${p.college}.`;
+    feedbackEl.className = "wrong";
+    inputEl.disabled = true;
+    guessBtn.disabled = true;
+    results.push({ correct: false, strikesUsed: strikes });
+    setTimeout(nextRound, 1800);
+  }
+}
+
+function nextRound() {
+  roundIndex++;
+  if (roundIndex >= players.length) {
+    showSummary();
+  } else {
+    loadRound();
+  }
+}
+
+// Weighted scoring: 3 pts if correct on the 1st guess, 2 on the 2nd, 1 on the 3rd, 0 if missed.
+function pointsFor(r) {
+  return r.correct ? 3 - r.strikesUsed : 0;
+}
+
+// One Wordle-style row per player: 🟥 for each wrong guess, 🟩 for the correct one,
+// ⬛ for guesses never used (either solved early or missed entirely, so all 3 are red).
+function emojiRowFor(r) {
+  const attemptsMade = r.correct ? r.strikesUsed + 1 : 3;
+  let row = "";
+  for (let i = 0; i < attemptsMade; i++) {
+    const isLast = i === attemptsMade - 1;
+    row += (r.correct && isLast) ? "🟩" : "🟥";
+  }
+  for (let i = attemptsMade; i < 3; i++) row += "⬛";
+  return row;
+}
+
+function buildShareText(totalPoints, maxPoints, streak) {
+  const grid = results.map(emojiRowFor).join("\n");
+  return `Where'd He Play? #${puzzleNumber} ${totalPoints}/${maxPoints}\n🔥 ${streak}-day streak\n\n${grid}`;
+}
+
+function copyResults() {
+  const textarea = document.getElementById("shareText");
+  const status = document.getElementById("copyStatus");
+  textarea.focus();
+  textarea.select();
+
+  navigator.clipboard.writeText(textarea.value).then(() => {
+    status.textContent = "Copied to clipboard!";
+  }).catch(() => {
+    const worked = document.execCommand("copy");
+    status.textContent = worked
+      ? "Copied to clipboard!"
+      : "Couldn't auto-copy — text is selected, press Cmd/Ctrl+C.";
+  });
+}
+
+// ---- Streaks & stats (persisted in localStorage) ----
+const STATS_KEY = "wheredHePlayStats";
+
+function loadStats() {
+  const blank = { lastPuzzleNumber: null, currentStreak: 0, maxStreak: 0, gamesPlayed: 0, totalPoints: 0, history: [] };
+  try {
+    const raw = localStorage.getItem(STATS_KEY);
+    return raw ? JSON.parse(raw) : blank;
+  } catch (e) {
+    return blank;
+  }
+}
+
+function saveStats(stats) {
+  try {
+    localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+  } catch (e) {
+    // localStorage unavailable (private browsing, etc.) — stats just won't persist this session.
+  }
+}
+
+// Replaying the same puzzle number never double-counts, since a puzzle is only
+// recorded into history once. "Streak" here means played every day, not scored —
+// missing a day (a gap in puzzle numbers) resets it back to 1.
+function recordCompletion(totalPoints, maxPoints) {
+  const stats = loadStats();
+  if (stats.history.some(h => h.puzzle === puzzleNumber)) return stats;
+
+  stats.currentStreak = (stats.lastPuzzleNumber === puzzleNumber - 1) ? stats.currentStreak + 1 : 1;
+  stats.maxStreak = Math.max(stats.maxStreak, stats.currentStreak);
+  stats.gamesPlayed += 1;
+  stats.totalPoints += totalPoints;
+  stats.lastPuzzleNumber = puzzleNumber;
+  stats.history.push({ puzzle: puzzleNumber, points: totalPoints, maxPoints });
+  if (stats.history.length > 30) stats.history = stats.history.slice(-30);
+
+  saveStats(stats);
+  return stats;
+}
+
+function renderStatsView() {
+  const stats = loadStats();
+  const avg = stats.gamesPlayed > 0 ? (stats.totalPoints / stats.gamesPlayed).toFixed(1) : "0.0";
+
+  let body;
+  if (stats.gamesPlayed === 0) {
+    body = `<p class="emptyStats">Play your first puzzle to start tracking stats.</p>`;
+  } else {
+    const recent = stats.history.slice(-14);
+    const bars = recent.map(h => {
+      const pct = Math.max(4, Math.round((h.points / h.maxPoints) * 100));
+      const cls = h.points === h.maxPoints ? "chartBar perfect" : "chartBar";
+      return `<div class="${cls}" style="height:${pct}%" title="Puzzle #${h.puzzle}: ${h.points}/${h.maxPoints}"></div>`;
+    }).join("");
+    const labels = recent.map(h => `<span>#${h.puzzle}</span>`).join("");
+
+    body = `
+      <div class="statsGrid">
+        <div class="statCard"><div class="num">${stats.gamesPlayed}</div><div class="label">Played</div></div>
+        <div class="statCard"><div class="num">${stats.currentStreak}</div><div class="label">Current streak</div></div>
+        <div class="statCard"><div class="num">${stats.maxStreak}</div><div class="label">Max streak</div></div>
+        <div class="statCard"><div class="num">${avg}</div><div class="label">Avg score (of 15)</div></div>
+      </div>
+      <div class="chartWrap">
+        <div class="chartBars">${bars}</div>
+        <div class="chartLabels">${labels}</div>
+      </div>
+    `;
+  }
+
+  statsViewEl.innerHTML = `
+    <h2>Your stats</h2>
+    ${body}
+    <button id="statsBackBtn" type="button" class="btn-secondary">Back</button>
+  `;
+  document.getElementById("statsBackBtn").addEventListener("click", closeStats);
+}
+
+let preStatsPanel = "game";
+
+function openStats() {
+  preStatsPanel = summaryEl.classList.contains("hidden") ? "game" : "summary";
+  gameEl.classList.add("hidden");
+  summaryEl.classList.add("hidden");
+  renderStatsView();
+  statsViewEl.classList.remove("hidden");
+}
+
+function closeStats() {
+  statsViewEl.classList.add("hidden");
+  if (preStatsPanel === "summary") {
+    summaryEl.classList.remove("hidden");
+  } else {
+    gameEl.classList.remove("hidden");
+  }
+}
+
+statsNavBtn.addEventListener("click", openStats);
+
+function showSummary() {
+  gameEl.classList.add("hidden");
+  summaryEl.classList.remove("hidden");
+
+  const maxPoints = players.length * 3;
+  const totalPoints = results.reduce((sum, r) => sum + pointsFor(r), 0);
+  const stats = recordCompletion(totalPoints, maxPoints);
+
+  let rows = "";
+  players.forEach((p, i) => {
+    const r = results[i];
+    rows += `<tr>
+      <td>${p.name}</td>
+      <td>${r.correct ? "✅" : "❌"}</td>
+      <td>${pointsFor(r)} pt${pointsFor(r) === 1 ? "" : "s"}</td>
+    </tr>`;
+  });
+
+  summaryEl.innerHTML = `
+    <h2>Score: ${totalPoints} / ${maxPoints}</h2>
+    <p id="streakLine">🔥 ${stats.currentStreak}-day streak</p>
+    <table>
+      <tr><th>Player</th><th>Result</th><th>Points</th></tr>
+      ${rows}
+    </table>
+    <div id="shareSection">
+      <textarea id="shareText" readonly rows="${players.length + 3}"></textarea>
+      <div id="shareActions">
+        <button id="copyBtn" type="button" class="btn-secondary">Copy results</button>
+        <button id="shareBtn" type="button" class="hidden">Share</button>
+      </div>
+      <div id="copyStatus"></div>
+    </div>
+    <button id="restartBtn" class="btn-secondary">Replay puzzle #${puzzleNumber}</button>
+  `;
+
+  document.getElementById("shareText").value = buildShareText(totalPoints, maxPoints, stats.currentStreak);
+  document.getElementById("copyBtn").addEventListener("click", copyResults);
+  document.getElementById("restartBtn").addEventListener("click", startGame);
+
+  const shareBtn = document.getElementById("shareBtn");
+  if (navigator.share) {
+    shareBtn.classList.remove("hidden");
+    shareBtn.addEventListener("click", () => {
+      navigator.share({ text: buildShareText(totalPoints, maxPoints, stats.currentStreak) }).catch(() => {});
+    });
+  }
+}
+
+formEl.addEventListener("submit", handleGuess);
+
+async function fetchWithTimeout(url, ms) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(url, { signal: controller.signal, cache: "no-store" });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Try the live sheet first; if it's unreachable, times out, or comes back
+// malformed/too small, fall back to the roster built into the page.
+async function boot() {
+  try {
+    const response = await fetchWithTimeout(SHEET_CSV_URL, 8000);
+    if (!response.ok) throw new Error(`Sheet fetch failed: ${response.status}`);
+    const text = await response.text();
+    const parsed = buildPlayers(text);
+    if (parsed.length < ROUNDS_PER_GAME) throw new Error("Sheet data missing or too small");
+    rawPlayers = parsed;
+  } catch (e) {
+    rawPlayers = FALLBACK_PLAYERS;
+    console.warn("Using built-in player data — couldn't load the live sheet:", e);
+  }
+
+  colleges = collegesFromPlayers(rawPlayers);
+  loadingViewEl.classList.add("hidden");
+  startGame();
+}
+
+boot();
+</script>
+
+</body>
+</html>
