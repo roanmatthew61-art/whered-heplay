@@ -15,7 +15,19 @@
   h1 { text-align: center; margin: 0 0 4px; font-size: 1.9em; text-transform: uppercase; letter-spacing: 1px; }
   #puzzleLabel { text-align: center; color: #c9a24b; font-weight: 700; letter-spacing: 2px; font-size: 0.9em; margin-bottom: 6px; }
   .headerBar { width: 60px; height: 3px; background: #d8232a; margin: 0 auto 18px; border-radius: 2px; }
-  #navRow { text-align: center; margin-bottom: 16px; }
+  #navRow { display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .iconBtn { width: 44px; height: 44px; min-height: 44px; padding: 0; border-radius: 50%; font-size: 1.1em; }
+  #helpPanel {
+    max-width: 480px; margin: 0 auto 16px; padding: 14px 20px; box-sizing: border-box;
+    background: #12294d; border: 1px solid #234876; border-radius: 10px;
+    text-align: center; color: #dbe4f0; font-size: 0.95em; line-height: 1.5;
+  }
+  #siteFooter {
+    text-align: center; color: #7f8fa8; font-size: 0.85em;
+    margin-top: 32px; padding-top: 16px; border-top: 1px solid #234876;
+  }
+  #siteFooter a { color: #c9a24b; text-decoration: none; }
+  #siteFooter a:hover { text-decoration: underline; }
   #game, #summary, #statsView {
     background: #12294d; border: 1px solid #234876; border-radius: 10px;
     padding: 24px 20px; box-shadow: 0 4px 14px rgba(0,0,0,0.35); box-sizing: border-box;
@@ -98,7 +110,11 @@
 <h1>Where'd He Play?</h1>
 <div id="puzzleLabel"></div>
 <div class="headerBar"></div>
-<div id="navRow"><button id="statsNavBtn" type="button" class="btn-secondary">View stats</button></div>
+<div id="navRow">
+  <button id="helpBtn" type="button" class="btn-secondary iconBtn" aria-label="How to play">?</button>
+  <button id="statsNavBtn" type="button" class="btn-secondary">View stats</button>
+</div>
+<div id="helpPanel" class="hidden">5 new players every day. Guess the college each one last played at before turning pro.</div>
 
 <div id="loadingView">Loading today's puzzle…</div>
 
@@ -123,6 +139,8 @@
 <div id="summary" class="hidden"></div>
 
 <div id="statsView" class="hidden"></div>
+
+<div id="siteFooter">Questions or feedback? <a href="mailto:wheredheplay@gmail.com">wheredheplay@gmail.com</a></div>
 
 <script>
 // ---- NFL team name -> ESPN logo abbreviation (all 32 teams) ----
@@ -544,6 +562,10 @@ const puzzleLabelEl = document.getElementById("puzzleLabel");
 const statsViewEl = document.getElementById("statsView");
 const statsNavBtn = document.getElementById("statsNavBtn");
 const loadingViewEl = document.getElementById("loadingView");
+const helpBtn = document.getElementById("helpBtn");
+const helpPanel = document.getElementById("helpPanel");
+
+helpBtn.addEventListener("click", () => helpPanel.classList.toggle("hidden"));
 
 // ---- Autocomplete ----
 function renderSuggestions(query) {
