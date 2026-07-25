@@ -445,26 +445,21 @@ function playersByDifficulty(pool) {
   return groups;
 }
 
-function hashSeed(tierName) {
+function stableHash(str) {
   let h = 0;
-  for (let i = 0; i < tierName.length; i++) h = (h * 31 + tierName.charCodeAt(i)) | 0;
+  for (let i = 0; i < str.length; i++) h = (Math.imul(h, 31) + str.charCodeAt(i)) | 0;
   return h >>> 0;
 }
 
-// One fixed shuffle order per tier, repeating on a strict cycle — the player at
-// position k reappears at k+size, k+2*size, and so on, always exactly `size`
-// picks apart. A fixed order (rather than reshuffling each pass) is what
-// guarantees that gap precisely; independently-reshuffled passes can
-// coincidentally place a just-used player right after the boundary, which
-// defeats the point.
+// Order players within a tier by a hash of each player's own name — not by
+// shuffling the array itself. This matters because the roster grows live from
+// a Google Sheet: an array shuffle's result depends on how many players exist
+// when it runs, so every new player added mid-day would silently reorder
+// everyone else too. Sorting by each player's own fixed key means a new
+// player only inserts themselves somewhere in line — everyone already there
+// keeps their relative order.
 function tierOrder(tierPool, tierName) {
-  const rng = mulberry32(hashSeed(tierName));
-  const arr = [...tierPool];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
+  return [...tierPool].sort((a, b) => stableHash(tierName + "|" + a.name) - stableHash(tierName + "|" + b.name));
 }
 
 function playerAtPosition(tierPool, tierName, absolutePosition) {
@@ -645,10 +640,50 @@ document.addEventListener("click", (e) => {
 });
 
 // ---- Game flow ----
+const DAILY_ROSTER_KEY = "wheredHePlayDailyRoster";
+
+function loadCachedRoster(puzzleNum) {
+  try {
+    const raw = localStorage.getItem(DAILY_ROSTER_KEY);
+    if (!raw) return null;
+    const cached = JSON.parse(raw);
+    if (cached.puzzleNumber !== puzzleNum || !Array.isArray(cached.names)) return null;
+    const byName = new Map(rawPlayers.map(p => [p.name, p]));
+    const resolved = cached.names.map(name => byName.get(name)).filter(Boolean);
+    // If the sheet lost one of these players (e.g. a row got deleted or renamed),
+    // the cache can't be trusted anymore — fall through and recompute fresh.
+    return resolved.length === cached.names.length ? resolved : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function saveRosterCache(puzzleNum, playersList) {
+  try {
+    localStorage.setItem(DAILY_ROSTER_KEY, JSON.stringify({
+      puzzleNumber: puzzleNum,
+      names: playersList.map(p => p.name)
+    }));
+  } catch (e) {
+    // localStorage unavailable — today's roster just won't be locked in across reloads.
+  }
+}
+
+// Once today's puzzle has been shown on this device, it stays fixed for the
+// rest of the day — even if the sheet keeps changing in the background — so
+// refreshing mid-edit never swaps players out from under an in-progress game.
+function getTodaysRoster(puzzleNum) {
+  const cached = loadCachedRoster(puzzleNum);
+  if (cached) return cached;
+  const fresh = dailyPool(puzzleNum);
+  saveRosterCache(puzzleNum, fresh);
+  return fresh;
+}
+
 function startGame() {
   puzzleNumber = getPuzzleNumber();
   puzzleLabelEl.textContent = `#${puzzleNumber}`;
-  players = dailyPool(puzzleNumber);
+  players = getTodaysRoster(puzzleNumber);
   roundIndex = 0;
   results = [];
   summaryEl.classList.add("hidden");
